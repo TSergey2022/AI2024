@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Grid : MonoBehaviour
+public class MyGrid : MonoBehaviour
 {
     //  Модель для отрисовки узла сетки
     public GameObject nodeModel;
@@ -24,15 +24,15 @@ public class Grid : MonoBehaviour
         foreach (PathNode node in grid)
         {
             //  Пока что считаем все вершины проходимыми, без учёта препятствий
-            node.walkable = true;
-            /*node.walkable = !Physics.CheckSphere(node.body.transform.position, 1);
+            // node.walkable = true;
+            node.walkable = !Physics.CheckSphere(node.body.transform.position, 1);
             if (node.walkable)
                 node.Fade();
             else
             {
                 node.Illuminate();
                 Debug.Log("Not walkable!");
-            }*/
+            }
         }
     }
 
@@ -119,7 +119,7 @@ public class Grid : MonoBehaviour
         var pathElem = grid[finishNode.x, finishNode.y];
         while(pathElem != null)
         {
-            pathElem.Illuminate();
+            pathElem.Illuminate2();
             pathElem = pathElem.ParentNode;
         }
     }
@@ -129,7 +129,7 @@ public class Grid : MonoBehaviour
     {
         //  Чтобы не вызывать этот метод каждый кадр, устанавливаем интервал вызова в 1000 кадров
         if (Time.frameCount < updateAtFrame) return;
-        updateAtFrame = Time.frameCount + 1000;
+        updateAtFrame = Time.frameCount + 120;
 
         calculatePath(new Vector2Int(0, 0), new Vector2Int(grid.GetLength(0)-1, grid.GetLength(1)-1));
     }
