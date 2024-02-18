@@ -41,11 +41,19 @@ public class MyGrid : MonoBehaviour
 
   private Amogus amogus = new Amogus();
 
+  [SerializeField] [Range(0, 10000)] float val = 40;
+
   void Update() {
+    amogus.ProcessInput();
     if (Time.frameCount < updateAtFrame || amogus.Lock) return;
     // Debug.Log("Amogus");
     // updateAtFrame = Time.frameCount + 60;
+    amogus.val = val;
     amogus.Process(grid, Vector2Int.zero, new Vector2Int(grid.GetUpperBound(0), grid.GetUpperBound(1)));
+  }
+
+  void OnGUI() {
+    amogus.ProcessGui();
   }
 
 }

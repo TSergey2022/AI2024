@@ -7,8 +7,14 @@ public class Amogus {
 
   public bool Lock { get; private set; } = false;
 
+  public float val = 40;
+
+  private bool procWave = true;
+  private bool procDijkstra = true;
+  private bool procAStar = true;
+
   public float Dist(PathNode a, PathNode b) {
-    return Vector3.Distance(a.pos, b.pos) + 40 * Mathf.Abs(a.pos.y - b.pos.y);
+    return Vector3.Distance(a.pos, b.pos) + val * Mathf.Abs(a.pos.y - b.pos.y);
   }
 
   private List<Vector2Int> GetNeighbours(PathNode[,] grid, Vector2Int current) {
@@ -20,11 +26,16 @@ public class Amogus {
     return nodes;
   }
 
+  private void UpdatePos(PathNode[,] grid) {
+    foreach (PathNode node in grid) {
+      node.pos = node.body.transform.position;
+    }
+  }
+
   private void ResetNodes(PathNode[,] grid) {
     foreach (PathNode node in grid) {
       node.ParentNode = null;
       node.Distance = float.PositiveInfinity;
-      node.pos = node.body.transform.position;
     }
   }
 
@@ -35,6 +46,7 @@ public class Amogus {
   }
 
   private List<PathNode> ProcessWave(PathNode[,] grid, Vector2Int startNode, Vector2Int finishNode) {
+    ResetNodes(grid);
     PathNode start = grid[startNode.x, startNode.y];
     start.Distance = 0;
     Queue<Vector2Int> nodes = new Queue<Vector2Int>();
@@ -46,7 +58,8 @@ public class Amogus {
       foreach (var node in neighbours) {
         var c = grid[current.x, current.y];
         var n = grid[node.x, node.y];
-        if (n.walkable && n.Distance > c.Distance + Dist(n, c)) {
+        if (!n.walkable) continue;
+        if (n.Distance > c.Distance + Dist(n, c)) {
           n.ParentNode = c;
           nodes.Enqueue(node);
         }
@@ -63,6 +76,7 @@ public class Amogus {
   }
 
   private List<PathNode> ProcessDijkstra(PathNode[,] grid, Vector2Int startNode, Vector2Int finishNode) {
+    ResetNodes(grid);
     PathNode start = grid[startNode.x, startNode.y];
     start.Distance = 0;
 
@@ -75,7 +89,8 @@ public class Amogus {
       foreach (var node in neighbours) {
         var c = grid[current.x, current.y];
         var n = grid[node.x, node.y];
-        if (n.walkable && n.Distance > c.Distance + Dist(n, c)) {
+        if (!n.walkable) continue;
+        if (n.Distance > c.Distance + Dist(n, c)) {
           n.Distance = c.Distance + Dist(n, c);
           n.ParentNode = c;
           queue.Enqueue(node, n.Distance);
@@ -93,13 +108,50 @@ public class Amogus {
   }
 
   public List<PathNode> ProcessAStar(PathNode[,] grid, Vector2Int startNode, Vector2Int finishNode) {
+    ResetNodes(grid);
+    PathNode start = grid[startNode.x, startNode.y];
+    start.Distance = 0;
+
+    var queue = new PriorityQueue<Vector2Int, float>();
+    queue.Enqueue(startNode, 0);
+    while (queue.Count > 0) {
+      var current = queue.Dequeue();
+      if (current == finishNode) break;
+      var neighbours = GetNeighbours(grid, current);
+      foreach (var node in neighbours) {
+        var c = grid[current.x, current.y];
+        var n = grid[node.x, node.y];
+        var f = grid[finishNode.x, finishNode.y];
+        if (!n.walkable) continue;
+        if (n.Distance > c.Distance + Dist(c, n)) {
+          n.Distance = c.Distance + Dist(c, n);
+          n.ParentNode = c;
+          queue.Enqueue(node, n.Distance + Dist(n, f));
+        }
+      }
+    }
+
+    var rez = new List<PathNode>();
+    var pathElem = grid[finishNode.x, finishNode.y];
+    while (pathElem != null) {
+      rez.Add(pathElem);
+      pathElem = pathElem.ParentNode;
+    }
+    rez.Add(grid[startNode.x, startNode.y]);
+    rez.Reverse();
+    return rez;
+  }
+
+  public List<PathNode> ProcessAStar2(PathNode[,] grid, Vector2Int startNode, Vector2Int finishNode) {
+    ResetNodes(grid);
+    PathNode start = grid[startNode.x, startNode.y];
     var priorityQueue = new PriorityQueue<Vector2Int, float>();
-    var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
-    var costSoFar = new Dictionary<Vector2Int, float>();
+    var cameFrom = new Dictionary<Vector2Int, Vector2Int>(); // PathNode.ParentNode
+    var costSoFar = new Dictionary<Vector2Int, float>(); // PathNode.Distance
 
     priorityQueue.Enqueue(startNode, 0);
-    cameFrom[startNode] = startNode;
-    costSoFar[startNode] = 0;
+    cameFrom[startNode] = startNode; // start.ParentNode = 0;
+    costSoFar[startNode] = 0; // start.Distance = 0;
 
     while (priorityQueue.Count > 0) {
       var current = priorityQueue.Dequeue();
@@ -109,10 +161,10 @@ public class Amogus {
         var c = grid[current.x, current.y];
         var n = grid[node.x, node.y];
         var f = grid[finishNode.x, finishNode.y];
-        float newCost = costSoFar[current] + Dist(c, n);
-        if (!costSoFar.ContainsKey(node) || newCost < costSoFar[node]) {
-          costSoFar[node] = newCost;
-          float priority = newCost + Dist(n, f);
+        if (!n.walkable) continue;
+        if (!costSoFar.ContainsKey(node) || costSoFar[node] > costSoFar[current] + Dist(c, n)) {
+          costSoFar[node] = costSoFar[current] + Dist(c, n);
+          float priority = costSoFar[current] + Dist(c, n) + Dist(n, f);
           priorityQueue.Enqueue(node, priority);
           cameFrom[node] = current;
         }
@@ -131,21 +183,43 @@ public class Amogus {
   }
 
   async public void Process(PathNode[,] grid, Vector2Int startNode, Vector2Int finishNode) {
+    // if (!(procWave || procDijkstra || procAStar)) return;
     if (Lock) return;
     Lock = true;
-    ResetNodes(grid);
+    UpdatePos(grid);
     UpdateWalkableNodes(grid);
-    var wave = await Task.Run(()=>ProcessWave(grid, startNode, finishNode));
-    var dijkstra = await Task.Run(()=>ProcessDijkstra(grid, startNode, finishNode));
-    var astar = await Task.Run(()=>ProcessAStar(grid, startNode, finishNode));
-    if (grid[0, 0] == null) return;
+    var (wave, dijkstra, astar) = await Task.Run(() => {
+      var wave = procWave ? ProcessWave(grid, startNode, finishNode) : new List<PathNode>();
+      var dijkstra = procDijkstra ? ProcessDijkstra(grid, startNode, finishNode)  : new List<PathNode>();
+      var astar = procAStar ? ProcessAStar(grid, startNode, finishNode) : ProcessAStar2(grid, startNode, finishNode);
+      return (wave, dijkstra, astar);
+    });
     foreach (var node in grid)
-      if (node.walkable) node.Fade();
-      else node.Illuminate();
-    wave.ForEach((node)=>node.Illuminate2());
-    dijkstra.ForEach((node)=>node.Illuminate3());
-    astar.ForEach((node)=>node.Illuminate4());
+      if (node.walkable) node?.Fade();
+      else node?.Illuminate();
+    if (procWave) wave.ForEach((node)=>node?.Illuminate2());
+    if (procDijkstra) dijkstra.ForEach((node)=>node?.Illuminate3());
+    if (true || procAStar) astar.ForEach((node)=>node?.Illuminate4());
     Lock = false;
+  }
+
+  public void ProcessInput() {
+    if (Input.GetKeyDown(KeyCode.Alpha1)) procWave = !procWave;
+    if (Input.GetKeyDown(KeyCode.Alpha2)) procDijkstra = !procDijkstra;
+    if (Input.GetKeyDown(KeyCode.Alpha3)) procAStar = !procAStar;
+  }
+
+  public void ProcessGui() {
+    GUI.backgroundColor = Color.black;
+    GUIStyle style = new GUIStyle(GUI.skin.box);
+    style.active = style.normal;
+    style.fontSize = 20;
+    style.normal.textColor = procWave ? Color.green : Color.red;
+    GUI.Label(new Rect(10, 10, 200, 50), $"Wave is {(procWave ? "active" : "deactive")}", style);
+    style.normal.textColor = procDijkstra ? Color.green : Color.red;
+    GUI.Label(new Rect(10, 60, 200, 50), $"Dijkstra is {(procDijkstra ? "active" : "deactive")}", style);
+    style.normal.textColor = procAStar ? Color.green : Color.red;
+    GUI.Label(new Rect(10, 110, 200, 50), $"A* is {(procAStar ? "active" : "deactive")}", style);
   }
 
 }
