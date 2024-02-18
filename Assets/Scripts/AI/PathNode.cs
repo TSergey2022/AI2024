@@ -42,10 +42,10 @@ public class PathNode //: MonoBehaviour
         //  Указываем родителя
         parentNode = parent;
         //  Вычисляем расстояние
-        if (parent != null)
-            distance = parent.Distance + Vector3.Distance(pos, parent.pos);
-        else
-            distance = float.PositiveInfinity;
+        // if (parent != null)
+        //     distance = parent.Distance + Vector3.Distance(pos, parent.pos);
+        // else
+        //     distance = float.PositiveInfinity;
     }
 
     /// <summary>

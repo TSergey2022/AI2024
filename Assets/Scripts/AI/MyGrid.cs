@@ -47,13 +47,13 @@ public class MyGrid : MonoBehaviour
     amogus.ProcessInput();
     if (Time.frameCount < updateAtFrame || amogus.Lock) return;
     // Debug.Log("Amogus");
-    // updateAtFrame = Time.frameCount + 60;
+    updateAtFrame = Time.frameCount;
     amogus.val = val;
     amogus.Process(grid, Vector2Int.zero, new Vector2Int(grid.GetUpperBound(0), grid.GetUpperBound(1)));
   }
 
   void OnGUI() {
-    amogus.ProcessGui();
+    amogus.ProcessGui(Time.frameCount - updateAtFrame);
   }
 
 }

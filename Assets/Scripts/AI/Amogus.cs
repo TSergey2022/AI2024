@@ -14,7 +14,8 @@ public class Amogus {
   private bool procAStar = true;
 
   public float Dist(PathNode a, PathNode b) {
-    return Vector3.Distance(a.pos, b.pos) + val * Mathf.Abs(a.pos.y - b.pos.y);
+    Vector3 aa = a.pos, bb = b.pos;
+    return Vector3.Distance(aa, bb) + val * Mathf.Abs(aa.y - bb.y);
   }
 
   private List<Vector2Int> GetNeighbours(PathNode[,] grid, Vector2Int current) {
@@ -60,6 +61,7 @@ public class Amogus {
         var n = grid[node.x, node.y];
         if (!n.walkable) continue;
         if (n.Distance > c.Distance + Dist(n, c)) {
+          n.Distance = c.Distance + Dist(n, c);
           n.ParentNode = c;
           nodes.Enqueue(node);
         }
@@ -142,46 +144,6 @@ public class Amogus {
     return rez;
   }
 
-  public List<PathNode> ProcessAStar2(PathNode[,] grid, Vector2Int startNode, Vector2Int finishNode) {
-    ResetNodes(grid);
-    PathNode start = grid[startNode.x, startNode.y];
-    var priorityQueue = new PriorityQueue<Vector2Int, float>();
-    var cameFrom = new Dictionary<Vector2Int, Vector2Int>(); // PathNode.ParentNode
-    var costSoFar = new Dictionary<Vector2Int, float>(); // PathNode.Distance
-
-    priorityQueue.Enqueue(startNode, 0);
-    cameFrom[startNode] = startNode; // start.ParentNode = 0;
-    costSoFar[startNode] = 0; // start.Distance = 0;
-
-    while (priorityQueue.Count > 0) {
-      var current = priorityQueue.Dequeue();
-      if (current == finishNode) break;
-      var neighbours = GetNeighbours(grid, current);
-      foreach (var node in neighbours) {
-        var c = grid[current.x, current.y];
-        var n = grid[node.x, node.y];
-        var f = grid[finishNode.x, finishNode.y];
-        if (!n.walkable) continue;
-        if (!costSoFar.ContainsKey(node) || costSoFar[node] > costSoFar[current] + Dist(c, n)) {
-          costSoFar[node] = costSoFar[current] + Dist(c, n);
-          float priority = costSoFar[current] + Dist(c, n) + Dist(n, f);
-          priorityQueue.Enqueue(node, priority);
-          cameFrom[node] = current;
-        }
-      }
-    }
-
-    var rez = new List<PathNode>();
-    var pathElem = finishNode;
-    while (pathElem != startNode) {
-      rez.Add(grid[pathElem.x, pathElem.y]);
-      pathElem = cameFrom[pathElem];
-    }
-    rez.Add(grid[startNode.x, startNode.y]);
-    rez.Reverse();
-    return rez;
-  }
-
   async public void Process(PathNode[,] grid, Vector2Int startNode, Vector2Int finishNode) {
     // if (!(procWave || procDijkstra || procAStar)) return;
     if (Lock) return;
@@ -190,16 +152,16 @@ public class Amogus {
     UpdateWalkableNodes(grid);
     var (wave, dijkstra, astar) = await Task.Run(() => {
       var wave = procWave ? ProcessWave(grid, startNode, finishNode) : new List<PathNode>();
-      var dijkstra = procDijkstra ? ProcessDijkstra(grid, startNode, finishNode)  : new List<PathNode>();
-      var astar = procAStar ? ProcessAStar(grid, startNode, finishNode) : ProcessAStar2(grid, startNode, finishNode);
+      var dijkstra = procDijkstra ? ProcessDijkstra(grid, startNode, finishNode) : new List<PathNode>();
+      var astar = procAStar ? ProcessAStar(grid, startNode, finishNode) : new List<PathNode>();
       return (wave, dijkstra, astar);
     });
     foreach (var node in grid)
       if (node.walkable) node?.Fade();
       else node?.Illuminate();
-    if (procWave) wave.ForEach((node)=>node?.Illuminate2());
-    if (procDijkstra) dijkstra.ForEach((node)=>node?.Illuminate3());
-    if (true || procAStar) astar.ForEach((node)=>node?.Illuminate4());
+    if (wave.Count > 0) wave.ForEach((node)=>node?.Illuminate2());
+    if (dijkstra.Count > 0) dijkstra.ForEach((node)=>node?.Illuminate3());
+    if (astar.Count > 0) astar.ForEach((node)=>node?.Illuminate4());
     Lock = false;
   }
 
@@ -209,17 +171,19 @@ public class Amogus {
     if (Input.GetKeyDown(KeyCode.Alpha3)) procAStar = !procAStar;
   }
 
-  public void ProcessGui() {
+  public void ProcessGui(int cock) {
     GUI.backgroundColor = Color.black;
     GUIStyle style = new GUIStyle(GUI.skin.box);
     style.active = style.normal;
     style.fontSize = 20;
-    style.normal.textColor = procWave ? Color.green : Color.red;
-    GUI.Label(new Rect(10, 10, 200, 50), $"Wave is {(procWave ? "active" : "deactive")}", style);
-    style.normal.textColor = procDijkstra ? Color.green : Color.red;
-    GUI.Label(new Rect(10, 60, 200, 50), $"Dijkstra is {(procDijkstra ? "active" : "deactive")}", style);
+    style.normal.textColor = procWave ? Color.yellow : Color.red;
+    GUI.Box(new Rect(10, 10, 200, 30), $"Wave is {(procWave ? "active" : "deactive")}", style);
+    style.normal.textColor = procDijkstra ? Color.cyan : Color.red;
+    GUI.Box(new Rect(10, 40, 200, 30), $"Dijkstra is {(procDijkstra ? "active" : "deactive")}", style);
     style.normal.textColor = procAStar ? Color.green : Color.red;
-    GUI.Label(new Rect(10, 110, 200, 50), $"A* is {(procAStar ? "active" : "deactive")}", style);
+    GUI.Box(new Rect(10, 70, 200, 30), $"A* is {(procAStar ? "active" : "deactive")}", style);
+    style.normal.textColor = Color.magenta;
+    GUI.Label(new Rect(10, 100, 200, 30), $"{cock}", style);
   }
 
 }
