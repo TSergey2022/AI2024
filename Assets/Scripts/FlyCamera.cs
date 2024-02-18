@@ -82,6 +82,8 @@ public class FlyCamera : MonoBehaviour
         {
             p_Velocity += new Vector3(1, 0, 0);
         }
+        if (Input.GetKey(KeyCode.Q)) p_Velocity += new Vector3(0, -1, 0);
+        if (Input.GetKey(KeyCode.E)) p_Velocity += new Vector3(0, 1, 0);
         return p_Velocity;
     }
 }
