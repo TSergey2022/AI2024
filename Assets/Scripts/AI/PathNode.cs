@@ -11,6 +11,8 @@ public class PathNode //: MonoBehaviour
     
     private PathNode parentNode = null;               //  откуда пришли
     
+    public Vector3 pos;
+
     /// <summary>
     /// Родительская вершина - предшествующая текущей в пути от начальной к целевой
     /// </summary>
@@ -41,7 +43,7 @@ public class PathNode //: MonoBehaviour
         parentNode = parent;
         //  Вычисляем расстояние
         if (parent != null)
-            distance = parent.Distance + Vector3.Distance(body.transform.position, parent.body.transform.position);
+            distance = parent.Distance + Vector3.Distance(pos, parent.pos);
         else
             distance = float.PositiveInfinity;
     }
@@ -79,9 +81,19 @@ public class PathNode //: MonoBehaviour
         body.GetComponent<Renderer>().material.color = Color.red;
     }
 
-    public void Illuminate2()
+    public void Illuminate4()
     {
         body.GetComponent<Renderer>().material.color = Color.green;
+    }
+    
+    public void Illuminate3()
+    {
+        body.GetComponent<Renderer>().material.color = Color.cyan;
+    }
+
+    public void Illuminate2()
+    {
+        body.GetComponent<Renderer>().material.color = Color.yellow;
     }
     
     /// <summary>
@@ -89,6 +101,6 @@ public class PathNode //: MonoBehaviour
     /// </summary>
     public void Fade()
     {
-        body.GetComponent<Renderer>().material.color = Color.blue;
+        body.GetComponent<Renderer>().material.color = Color.gray;
     }
 }
